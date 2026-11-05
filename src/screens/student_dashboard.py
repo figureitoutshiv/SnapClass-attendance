@@ -3,13 +3,13 @@ from PIL import Image
 import numpy as np
 import io
 
-from screens.pipeline.face_pipeline import (
+from src.screens.pipeline.face_pipeline import (
     predict_attendance,
     get_face_encodings,
     train_classifier,
 )
-from screens.pipeline.voice_pipeline import get_voice_embedding
-from screens.database.db import get_all_students, create_student
+from src.screens.pipeline.voice_pipeline import get_voice_embedding
+from src.screens.database.db import get_all_students, create_student
 
 
 @st.cache_data(show_spinner=False, max_entries=16)

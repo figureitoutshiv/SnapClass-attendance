@@ -12,15 +12,16 @@ def load_dlib_models():
     detector = dlib.get_frontal_face_detector()
 
     sp = dlib.shape_predictor(
-        face_recognition_models.face_recognition_models.face_recognition_model_location()
+        face_recognition_models.pose_predictor_model_location()
     )
 
-    facerec = dlib.facerecognition_model_v1(
-        face_recognition_models.face_recognition_models.face_recognition_model_location()
+    facerec = dlib.face_recognition_model_v1(
+        face_recognition_models.face_recognition_model_location()
     )
+    return detector, sp, facerec
 
 
-def get_face_embedding(image_np):
+def get_face_encodings(image_np):
     detector, sp, facerec = load_dlib_models()
     faces = detector(image_np, 3)
 
@@ -67,7 +68,7 @@ def train_classifier():
     return bool(model_data)
 
 def predict_attendance(class_image_np):
-    encoding = get_face_embedding(class_image_np)
+    encoding = get_face_encodings(class_image_np)
     detected_student = {}
 
     model_data = get_trained_model()
@@ -87,7 +88,7 @@ def predict_attendance(class_image_np):
         else:
             predicted_id = int(all_students[0])
 
-        student_embedding = X_train[y_train.index[predicted_id]]
+        student_embedding = X_train[y_train.index(predicted_id)]
 
         best_match_score = np.linalg.norm(student_embedding-encoding)
 

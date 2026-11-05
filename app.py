@@ -9,7 +9,7 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 
 from src.screens.home_dashboard import home_dashboard
-from src.screens.student_dashboard import student_dashboard
+from src.screens.student_dashboard import student_screen
 from src.screens.teacher_dashboard import teacher_dashboard
 from src.screens.ui.base_layout import style_base_layout
 
@@ -23,7 +23,7 @@ def main():
         case 'teacher':
             teacher_dashboard()
         case 'student':
-            student_dashboard()
+            student_screen()
         case None:
             home_dashboard()
 
