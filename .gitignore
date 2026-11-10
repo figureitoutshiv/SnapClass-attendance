@@ -13,6 +13,7 @@ env/
 .env
 .env.*
 config.py
+!src/screens/database/config.py
 
 # Streamlit
 .streamlit/secrets.toml

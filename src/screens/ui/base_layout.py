@@ -68,7 +68,7 @@ def style_base_layout():
 
             /* Secondary buttons */
             button[kind="secondary"] {
-                background-color: #5B459E !important;
+                background-color: #ccc77c !important;
                 color: white !important;
                 border-radius: 1.5rem !important;
                 padding: 10px 20px !important;
