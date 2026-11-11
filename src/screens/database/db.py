@@ -5,7 +5,6 @@ from supabase import Client, create_client
 
 from src.screens.database.config import SUPABASE_KEY, SUPABASE_URL, supabase
 
-
 def get_admin_supabase() -> Client:
     service_role_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if not service_role_key:
@@ -81,6 +80,17 @@ def create_subject(teacher_id, subject_code, name, section):
     response = get_admin_supabase().table("subjects").insert(data).execute()
     return response.data
 
+def get_subject_by_code(subject_code):
+    response = (
+        get_admin_supabase()
+        .table("subjects")
+        .select("subject_id, name, subject_code")
+        .eq("subject_code", subject_code)
+        .limit(1)
+        .execute()
+    )
+    return response.data[0] if response.data else None
+
 def get_teacher_subjects(teacher_id):
     teacher_data = st.session_state.get("teacher_data")
     if not teacher_data or teacher_data.get("teacher_id") != teacher_id:
@@ -104,3 +114,61 @@ def get_teacher_subjects(teacher_id):
         sub.pop('attendance_logs', None)
 
     return subjects
+
+def _require_current_student(student_id):
+    student_data = st.session_state.get("student_data")
+    if not student_data or student_data.get("student_id") != student_id:
+        raise PermissionError("You must be logged in as this student to manage enrollments.")
+
+
+def enroll_student_to_subject(student_id, subject_id):
+    _require_current_student(student_id)
+    admin_supabase = get_admin_supabase()
+    existing = (
+        admin_supabase.table("subject_student")
+        .select("student_id")
+        .eq("student_id", student_id)
+        .eq("subject_id", subject_id)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return False
+
+    data = {'student_id': student_id, "subject_id": subject_id}
+    response = admin_supabase.table('subject_student').insert(data).execute()
+    return bool(response.data)
+
+def unenroll_student_to_subject(student_id, subject_id):
+    _require_current_student(student_id)
+    response = (
+        get_admin_supabase()
+        .table("subject_student")
+        .delete()
+        .eq("student_id", student_id)
+        .eq("subject_id", subject_id)
+        .execute()
+    )
+    return response.data
+
+def get_students_subjects(student_id):
+    _require_current_student(student_id)
+    response = (
+        get_admin_supabase()
+        .table("subject_student")
+        .select("*, subjects(*)")
+        .eq("student_id", student_id)
+        .execute()
+    )
+    return response.data
+
+def get_students_attendance(student_id):
+    _require_current_student(student_id)
+    response = (
+        get_admin_supabase()
+        .table("attendance_logs")
+        .select("*, subjects(*)")
+        .eq("student_id", student_id)
+        .execute()
+    )
+    return response.data
