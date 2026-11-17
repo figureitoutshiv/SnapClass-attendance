@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from src.screens.components.auto_enroll_dialog import auto_enroll_dialog
+
 
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
@@ -27,5 +29,13 @@ def main():
         case None:
             home_dashboard()
 
-if __name__ == "__main__":
-    main()
+    join_code = st.query_params.get('join-code')
+    if join_code:
+        if st.session_state.login_type != 'student':
+            st.session_state.login_type = 'student'
+            st.rerun()
+
+        if st.session_state.get('student_data'):
+            auto_enroll_dialog(join_code)
+
+main()
