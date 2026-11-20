@@ -11,7 +11,7 @@ def get_admin_supabase() -> Client:
         service_role_key = st.secrets.get("SUPABASE_SERVICE_ROLE_KEY")
     if not service_role_key:
         raise RuntimeError(
-            "Subject creation requires SUPABASE_SERVICE_ROLE_KEY. "
+            "Privileged database access requires SUPABASE_SERVICE_ROLE_KEY. "
             "Configure it in Streamlit secrets or the server environment."
         )
     if service_role_key == SUPABASE_KEY or service_role_key.startswith(
@@ -115,6 +115,43 @@ def get_teacher_subjects(teacher_id):
 
     return subjects
 
+
+def get_subject_students(teacher_id, subject_id):
+    teacher_data = st.session_state.get("teacher_data")
+    if not teacher_data or teacher_data.get("teacher_id") != teacher_id:
+        raise PermissionError("You must be logged in as this teacher to view enrolled students.")
+
+    admin_supabase = get_admin_supabase()
+    subject = (
+        admin_supabase.table("subjects")
+        .select("subject_id")
+        .eq("subject_id", subject_id)
+        .eq("teacher_in", teacher_id)
+        .limit(1)
+        .execute()
+    )
+    if not subject.data:
+        raise PermissionError("You can only view students in your own subjects.")
+
+    enrollments = (
+        admin_supabase.table("subject_student")
+        .select("student_id")
+        .eq("subject_id", subject_id)
+        .execute()
+    )
+    student_ids = [row["student_id"] for row in enrollments.data]
+    if not student_ids:
+        return []
+
+    students = (
+        admin_supabase.table("students")
+        .select("*")
+        .in_("student_id", student_ids)
+        .execute()
+    )
+    return students.data
+
+
 def _require_current_student(student_id):
     student_data = st.session_state.get("student_data")
     if not student_data or student_data.get("student_id") != student_id:
@@ -174,5 +211,39 @@ def get_students_attendance(student_id):
     return response.data
 
 def create_attendance(logs):
-    response = supabase.table("attendance_logs").insert(logs).execute()
+    teacher_data = st.session_state.get("teacher_data")
+    if not teacher_data:
+        raise PermissionError("You must be logged in as a teacher to record attendance.")
+    if not logs:
+        raise ValueError("Attendance records are required.")
+
+    subject_ids = {log.get("subject_id") for log in logs}
+    if len(subject_ids) != 1 or None in subject_ids:
+        raise ValueError("Attendance records must belong to exactly one subject.")
+    subject_id = next(iter(subject_ids))
+    teacher_id = teacher_data.get("teacher_id")
+
+    admin_supabase = get_admin_supabase()
+    subject = (
+        admin_supabase.table("subjects")
+        .select("subject_id")
+        .eq("subject_id", subject_id)
+        .eq("teacher_in", teacher_id)
+        .limit(1)
+        .execute()
+    )
+    if not subject.data:
+        raise PermissionError("You can only record attendance for your own subjects.")
+
+    enrollments = (
+        admin_supabase.table("subject_student")
+        .select("student_id")
+        .eq("subject_id", subject_id)
+        .execute()
+    )
+    enrolled_ids = {row["student_id"] for row in enrollments.data}
+    if any(log.get("student_id") not in enrolled_ids for log in logs):
+        raise ValueError("Attendance records can only include enrolled students.")
+
+    response = admin_supabase.table("attendance_logs").insert(logs).execute()
     return response.data
