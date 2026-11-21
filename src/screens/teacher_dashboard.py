@@ -19,6 +19,7 @@ from src.screens.database.db import (
     teacher_login,
     get_teacher_subjects,
     get_subject_students,
+    get_attendence_for_teacher,
 )
 from src.screens.components.navigation import dashboard_navigation
 from src.screens.ui.base_layout import (
@@ -261,7 +262,48 @@ def teacher_tab_manage_subjects():
 
 
 def teacher_tab_attendance_records():
-     st.write("Records tab Selected.")
+    st.write("Records tab Selected.")
+
+    teacher_id = st.session_state.teacher_data["teacher_id"]
+    records = get_attendence_for_teacher(teacher_id)
+
+    if not records:
+        st.info("No attendance records found.")
+        return
+
+    data = []
+    for r in records:
+        ts = r.get("timestamp")
+
+        data.append({
+            "ts_group": ts.split("."),
+            "Time": datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S") if ts else "N/A",
+            "Subject": r['subjects']['name'],
+            "Subject Code": r['subjects']['subject_code'],
+            "is_present": bool(r.get('is_present', False))
+        })
+
+        df = pd.DataFrame(data)
+
+        summary = (
+            df.groupby(['ts_group', 'Time', 'Subject', 'Subject Code'])
+            .agg(
+                Present=('is_present', 'sum'),
+                Total=('is_present', 'count')
+            ).reset_index()
+        )
+
+        summary['Attendance stats'] = (
+            "✓" + summary['Present_Count'].astype(str)+"/"
+            + summary['Total_Count'].astype(str) + 'Students'
+        )
+
+        display_df = (summary.sort_values(by='ts_group', ascending=False)
+                      [['Time', 'Subject', 'Subject Code', 'Attendance stats']]
+                      )
+
+        st.dataframe(display_df, hide_index=True, width="stretch")
+
 
 
 def teacher_screen_login():

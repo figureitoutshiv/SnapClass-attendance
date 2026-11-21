@@ -247,3 +247,7 @@ def create_attendance(logs):
 
     response = admin_supabase.table("attendance_logs").insert(logs).execute()
     return response.data
+
+def get_attendence_for_teacher(teacher_id):
+    response = supabase.table("attendance_logs").select("*, subjects(*)").eq("subjects.teacher_in", teacher_id).execute()
+    return response.data

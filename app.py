@@ -16,6 +16,13 @@ from src.screens.teacher_dashboard import teacher_dashboard
 from src.screens.ui.base_layout import style_base_layout
 
 def main():
+
+    st.set_page_config(
+        page_title="SnapClass Attendance",
+        page_icon=":bar_chart:",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
     style_base_layout()
 
     if 'login_type' not in st.session_state:
